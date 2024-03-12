@@ -7,6 +7,7 @@ import {
 	getAllTags,
 } from "obsidian";
 import * as fs from "fs";
+import * as path from "path";
 import {
 	AnkiObsidianIntegrationSettings,
 	card,
@@ -16,16 +17,16 @@ import { addDeckOnAnki, addImagesOnAnki } from "./ankiCommunication";
 import { Converter } from "showdown";
 
 export function getCurrentFile(): TFile | null {
-	let editor = this.app.workspace.activeEditor;
+	const editor = this.app.workspace.activeEditor;
 
 	return editor == null ? null : editor?.file;
 }
 
 export function getFilesOnFolder(path: string, vault: Vault): TFile[] {
-	let folder = vault.getAbstractFileByPath(path);
+	const folder = vault.getAbstractFileByPath(path);
 
 	if (folder instanceof TFolder) {
-		let files = folder.children.filter((child) => child instanceof TFile);
+		const files = folder.children.filter((child) => child instanceof TFile);
 
 		return files as TFile[];
 	}
@@ -36,7 +37,7 @@ export function getFilesOnFolder(path: string, vault: Vault): TFile[] {
 export async function getAnkiCardIdFromFile(
 	noteContent: string,
 ): Promise<number | null> {
-	let m = noteContent.match(/anki-id: \d+/g)?.toString();
+	const m = noteContent.match(/anki-id: \d+/g)?.toString();
 
 	if (!m) return null;
 
@@ -45,8 +46,6 @@ export async function getAnkiCardIdFromFile(
 
 export function getDeckFromTags(tags: string[]): string {
 	let deck = tags[0].slice(1).trim();
-	let captalizedLetter = deck.charAt(0).toUpperCase();
-	deck = captalizedLetter + deck.slice(1);
 	deck = deck.replace(/-/g, " ");
 
 	return deck;
@@ -71,7 +70,7 @@ export async function getInfoFromFile(
 	file: TFile,
 	ignoreTags: string[],
 ): Promise<{ noteTitle: string; noteContent: string; tags: string[] | null }> {
-	let noteTitle = file.name.substring(0, file.name.length - 3);
+	const noteTitle = file.name.substring(0, file.name.length - 3);
 	let noteContent = await this.app.vault.cachedRead(file);
 
 	let tags = getAllTags(this.app.metadataCache.getFileCache(file));
@@ -119,9 +118,9 @@ export function getImagesFromNote(
 	noteContent: string,
 	basePath: string,
 	attachmentsFolder: string,
-	excalidrawFolder: string = "",
+	excalidrawFolder: string,
 ): imageToSend[] {
-	let images = [...noteContent.matchAll(/!\[\[((.|\n)*?)\]\]/g)]
+	const images = [...noteContent.matchAll(/!\[\[((.|\n)*?)\]\]/g)]
 		.filter((match) => match[1].match(/(.png|.jpg|.svg)$/))
 		.map((match) => {
 			return {
@@ -142,17 +141,20 @@ export function getImagePath(
 	filename: string,
 	basePath: string,
 	attachmentsFolder: string,
-	excalidrawFolder: string = "",
+	excalidrawFolder: string,
 ): string {
 	if (filename.contains(".excalidraw")) {
-		return `${basePath}\\${excalidrawFolder}\\${filename}`;
+		return path.join(basePath, excalidrawFolder, filename);
 	}
 
-	return `${basePath}\\${attachmentsFolder}\\${filename}`;
+	return path.join(basePath, attachmentsFolder, filename);
 }
 
 export function convertImagesMDToHtml(noteContent: string): string {
-	let output = noteContent.replace(/!\[\[((.|\n)*?)\]\]/g, "<img src='$1'>");
+	const output = noteContent.replace(
+		/!\[\[((.|\n)*?)\]\]/g,
+		"<img src='$1'>",
+	);
 
 	return output;
 }
@@ -174,6 +176,7 @@ export async function prepareCard(
 	createdDecks: string[],
 	basePath: string,
 ): Promise<card> {
+	// eslint-disable-next-line prefer-const
 	let { noteTitle, noteContent, tags } = await getInfoFromFile(
 		file,
 		settings.ignoreTags,
@@ -199,7 +202,7 @@ export async function prepareCard(
 		noteContent = appendSVGToExcalidrawFiles(noteContent);
 	}
 
-	let images = getImagesFromNote(
+	const images = getImagesFromNote(
 		noteContent,
 		basePath,
 		settings.attachmentsFolder,
@@ -210,13 +213,17 @@ export async function prepareCard(
 		try {
 			await addImagesOnAnki(images);
 		} catch (error) {
+			console.log(error);
 			new Notice(`Unable to load one or more images for "${noteTitle}"`);
 		}
 
 		noteContent = convertImagesMDToHtml(noteContent);
+
+		// Remove brackets
+		noteContent = noteContent.replace(/(\[\[|\]\])/g, "*");
 	}
 
-	let htmlConverter = new Converter();
+	const htmlConverter = new Converter();
 
 	return {
 		front: noteTitle,

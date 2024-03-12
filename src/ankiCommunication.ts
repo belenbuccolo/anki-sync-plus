@@ -1,6 +1,8 @@
 import { normalizePath, requestUrl } from "obsidian";
 import { card, imagesToSend } from "./interfaces";
-import { convertImageToBase64 } from "./utils";
+// import { convertImageToBase64 } from "./utils";
+
+import * as path from "path";
 
 export async function addCardOnAnki(card: card): Promise<string | null> {
 	const url = "http://localhost:8765/";
@@ -20,7 +22,7 @@ export async function addCardOnAnki(card: card): Promise<string | null> {
 		},
 	});
 
-	let response = await requestUrl({
+	const response = await requestUrl({
 		url,
 		method: "post",
 		body,
@@ -51,7 +53,7 @@ export async function updateCardOnAnki(
 		},
 	});
 
-	let response = await requestUrl({
+	const response = await requestUrl({
 		url,
 		method: "post",
 		body,
@@ -71,7 +73,7 @@ export async function deleteCardOnAnki(id: number): Promise<string | null> {
 		},
 	});
 
-	let response = await requestUrl({
+	const response = await requestUrl({
 		url,
 		method: "post",
 		body,
@@ -91,7 +93,7 @@ export async function addDeckOnAnki(name: string): Promise<string | null> {
 		},
 	});
 
-	let response = await requestUrl({
+	const response = await requestUrl({
 		url,
 		method: "post",
 		body,
@@ -105,21 +107,21 @@ export async function addImagesOnAnki(
 ): Promise<string | null> {
 	const url = "http://localhost:8765/";
 
-	const actions = await Promise.all(
-		images.map(async (image) => {
-			let path = normalizePath(image.path);
+	const actions = [];
+	for (const image of images) {
+		const normalizedPath = normalizePath(image.path);
+		const absolutePath = path.join("/", normalizedPath);
 
-			const data = await convertImageToBase64(path);
+		// const data = await convertImageToBase64(absolutePath);
 
-			return {
-				action: "storeMediaFile",
-				params: {
-					filename: image.filename,
-					data: data,
-				},
-			};
-		}),
-	);
+		actions.push({
+			action: "storeMediaFile",
+			params: {
+				filename: image.filename,
+				path: absolutePath,
+			},
+		});
+	}
 
 	const body = JSON.stringify({
 		action: "multi",
@@ -128,7 +130,7 @@ export async function addImagesOnAnki(
 		},
 	});
 
-	let response = await requestUrl({
+	const response = await requestUrl({
 		url,
 		method: "post",
 		body,

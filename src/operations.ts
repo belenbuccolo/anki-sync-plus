@@ -29,7 +29,7 @@ export async function addNewCard(
 		return;
 	}
 
-	let ankiId = await addCardOnAnki(card);
+	const ankiId = await addCardOnAnki(card);
 
 	if (ankiId) {
 		await addAnkiIdToNote(file, ankiId, fileManager);
@@ -60,7 +60,7 @@ export async function updateExistingCard(
 		return;
 	}
 
-	let error = await updateCardOnAnki(ankiId, card);
+	const error = await updateCardOnAnki(ankiId, card);
 
 	if (error != null) {
 		new Notice(`Card ${card.front} was deleted on Anki!`);
