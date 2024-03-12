@@ -1,56 +1,85 @@
 import { TFile, Notice, Vault, FileManager } from "obsidian";
-import {  addAnkiIdToNote, removeAnkiIdFromNote, prepareCard } from "./utils";
-import { addCardOnAnki, deleteCardOnAnki, updateCardOnAnki } from "./ankiCommunication";
+import { addAnkiIdToNote, removeAnkiIdFromNote, prepareCard } from "./utils";
+import {
+	addCardOnAnki,
+	deleteCardOnAnki,
+	updateCardOnAnki,
+} from "./ankiCommunication";
 import { AnkiObsidianIntegrationSettings, card } from "./interfaces";
 import { getBasePath } from "./getBasePath";
 
+export async function addNewCard(
+	file: TFile,
+	vault: Vault,
+	createdDecks: string[],
+	settings: AnkiObsidianIntegrationSettings,
+	fileManager: FileManager,
+) {
+	let card: card;
 
+	try {
+		card = await prepareCard(
+			file,
+			settings,
+			createdDecks,
+			getBasePath(vault),
+		);
+	} catch (error) {
+		console.log(error);
+		return;
+	}
 
-export async function addNewCard(file: TFile, vault: Vault, createdDecks: string[], settings: AnkiObsidianIntegrationSettings, fileManager: FileManager){
+	let ankiId = await addCardOnAnki(card);
 
-    let card: card;
+	if (ankiId) {
+		await addAnkiIdToNote(file, ankiId, fileManager);
+	}
 
-    try{
-        card = await prepareCard(file, settings, createdDecks, getBasePath(vault))
-    } catch (error) {
-        console.log(error)
-        return;
-    }
-        
-    let ankiId = await addCardOnAnki(card);
-
-    if(ankiId){
-        await addAnkiIdToNote(file, ankiId, fileManager);
-    }
-
-    new Notice(`Card created: ${card.front} on ${card.deck}`);
+	new Notice(`Card created: ${card.front} on ${card.deck}`);
 }
 
-export async function updateExistingCard(ankiId:number, file: TFile, vault: Vault, createdDecks: string[], settings: AnkiObsidianIntegrationSettings, fileManager: FileManager){
-    let card: card;
+export async function updateExistingCard(
+	ankiId: number,
+	file: TFile,
+	vault: Vault,
+	createdDecks: string[],
+	settings: AnkiObsidianIntegrationSettings,
+	fileManager: FileManager,
+) {
+	let card: card;
 
-    try{
-        card = await prepareCard(file, settings, createdDecks, getBasePath(vault))
-    } catch (error) {
-        console.log(error)
-        return;
-    }
- 
-    let error = await updateCardOnAnki(ankiId, card);
+	try {
+		card = await prepareCard(
+			file,
+			settings,
+			createdDecks,
+			getBasePath(vault),
+		);
+	} catch (error) {
+		console.log(error);
+		return;
+	}
 
-    if(error != null){
-        new Notice(`Card ${card.front} was deleted on Anki!`)
+	let error = await updateCardOnAnki(ankiId, card);
 
-        await removeAnkiIdFromNote(file, fileManager);
-    } else {
-        new Notice(`Card updated: ${card.front} on ${card.deck}`);
-    }  
+	if (error != null) {
+		new Notice(`Card ${card.front} was deleted on Anki!`);
+
+		await removeAnkiIdFromNote(file, fileManager);
+	} else {
+		new Notice(`Card updated: ${card.front} on ${card.deck}`);
+	}
 }
 
-export async function deleteExistingCard(ankiId:number, file: TFile, vault: Vault, fileManager: FileManager){
-    deleteCardOnAnki(ankiId);
+export async function deleteExistingCard(
+	ankiId: number,
+	file: TFile,
+	vault: Vault,
+	fileManager: FileManager,
+) {
+	deleteCardOnAnki(ankiId);
 
-    await removeAnkiIdFromNote(file, fileManager);
+	await removeAnkiIdFromNote(file, fileManager);
 
-    new Notice(`Card deleted`);
+	new Notice(`Card deleted`);
 }
