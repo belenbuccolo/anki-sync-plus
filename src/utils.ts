@@ -99,6 +99,25 @@ export async function addAnkiIdToNote(
 	});
 }
 
+export async function addTagToNote(file: TFile, fileManager: FileManager, tag: string) {
+  
+	await fileManager.processFrontMatter(file, (frontmatter: any) => {
+    const existingTags = frontmatter["tags"];
+    if (existingTags.includes(tag)) {
+       return;
+    }
+
+    // Add new tag
+		frontmatter["tags"] = [...frontmatter["tags"],tag];
+	});
+}
+
+export async function appendContentToNote(file: TFile,content: string) {
+  console.log(content)
+    const currentContent = await this.app.vault.read(file);
+    await this.app.vault.modify(file, currentContent + "\n" + `marked: ${content}`);
+}
+
 export async function removeAnkiIdFromNote(
 	file: TFile,
 	fileManager: FileManager,
@@ -111,7 +130,7 @@ export async function removeAnkiIdFromNote(
 export function appendSVGToExcalidrawFiles(noteContent: string): string {
 	noteContent = noteContent.replace(/.excalidraw/gm, ".excalidraw.svg");
 
-	return noteContent;
+  return noteContent;
 }
 
 export function getImagesFromNote(

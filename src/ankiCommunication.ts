@@ -138,3 +138,44 @@ export async function addImagesOnAnki(
 
 	return response.json.result;
 }
+
+export async function getCardsInfoFromAnki(deck: string) {
+	const url = "http://localhost:8765/";
+  
+  try {
+    	const findNotesIdsResponse = await requestUrl({
+		url,
+		method: "post",
+		body: JSON.stringify({
+			action: "findNotes",
+			version: 6,
+			params: {
+				query: `deck:${deck}`,
+			},
+		}),
+	});
+
+
+	const body = JSON.stringify({
+		action: "notesInfo",
+		version: 6,
+		params: {
+			notes: findNotesIdsResponse.json.result,
+		},
+	});
+
+	const findNotesInfoResponse = await requestUrl({
+		url,
+		method: "post",
+		body,
+	});
+
+
+	return findNotesInfoResponse.json.result;
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+
+
+}
